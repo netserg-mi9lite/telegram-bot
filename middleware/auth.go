@@ -30,6 +30,16 @@ func HasAccess(user *models.User) bool {
 	return user.Status == models.StatusApproved || user.Role == models.RoleSuperAdmin
 }
 
+func HasAdminAccess(userID int64, user *models.User) bool {
+	if userID == config.SuperAdminUID {
+		return true
+	}
+	if user != nil && user.Role == models.RoleAdmin && user.Status == models.StatusApproved {
+		return true
+	}
+	return false
+}
+
 func GetUserID(update *tgbotapi.Update) int64 {
 	if update.Message != nil {
 		return update.Message.From.ID

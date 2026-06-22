@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"telegram-bot/database"
+	"telegram-bot/middleware"
 	"telegram-bot/models"
 	"telegram-bot/sanitize"
 	"strconv"
@@ -43,10 +44,19 @@ func (h *Handler) ListPending(update *tgbotapi.Update) {
 	userID := update.Message.From.ID
 
 	if !h.Cfg.IsAdmin(userID) {
-		msg := tgbotapi.NewMessage(chatID, "⛔ <b>У вас нет прав администратора</b>")
-		msg.ParseMode = "HTML"
-		h.Bot.Send(msg)
-		return
+		var user models.User
+		if err := database.DB.First(&user, userID).Error; err != nil {
+			msg := tgbotapi.NewMessage(chatID, "⛔ <b>У вас нет прав администратора</b>")
+			msg.ParseMode = "HTML"
+			h.Bot.Send(msg)
+			return
+		}
+		if !middleware.HasAdminAccess(userID, &user) {
+			msg := tgbotapi.NewMessage(chatID, "⛔ <b>У вас нет прав администратора</b>")
+			msg.ParseMode = "HTML"
+			h.Bot.Send(msg)
+			return
+		}
 	}
 
 	var users []models.User
@@ -86,10 +96,19 @@ func (h *Handler) ListUsers(update *tgbotapi.Update) {
 	userID := update.Message.From.ID
 
 	if !h.Cfg.IsAdmin(userID) {
-		msg := tgbotapi.NewMessage(chatID, "⛔ <b>У вас нет прав администратора</b>")
-		msg.ParseMode = "HTML"
-		h.Bot.Send(msg)
-		return
+		var user models.User
+		if err := database.DB.First(&user, userID).Error; err != nil {
+			msg := tgbotapi.NewMessage(chatID, "⛔ <b>У вас нет прав администратора</b>")
+			msg.ParseMode = "HTML"
+			h.Bot.Send(msg)
+			return
+		}
+		if !middleware.HasAdminAccess(userID, &user) {
+			msg := tgbotapi.NewMessage(chatID, "⛔ <b>У вас нет прав администратора</b>")
+			msg.ParseMode = "HTML"
+			h.Bot.Send(msg)
+			return
+		}
 	}
 
 	var users []models.User
@@ -143,8 +162,15 @@ func (h *Handler) HandleCallback(update *tgbotapi.Update) {
 	adminID := callback.From.ID
 
 	if !h.Cfg.IsAdmin(adminID) {
-		h.answerCallback(callback.ID, "⛔ Нет прав")
-		return
+		var adminUser models.User
+		if err := database.DB.First(&adminUser, adminID).Error; err != nil {
+			h.answerCallback(callback.ID, "⛔ Нет прав")
+			return
+		}
+		if !middleware.HasAdminAccess(adminID, &adminUser) {
+			h.answerCallback(callback.ID, "⛔ Нет прав")
+			return
+		}
 	}
 
 	data := callback.Data

@@ -168,16 +168,30 @@ func (h *Handler) notifyAdmins(user *models.User, phone string) {
 			"📱 Телефон: <code>%s</code>",
 		user.ID, user.FirstName, user.LastName, user.Username, phone)
 
-	msg := tgbotapi.NewMessage(config.SuperAdminUID, text)
-	msg.ParseMode = "HTML"
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("✅ Одобрить", fmt.Sprintf("approve_%d", user.ID)),
 			tgbotapi.NewInlineKeyboardButtonData("❌ Отклонить", fmt.Sprintf("reject_%d", user.ID)),
 		),
 	)
-	msg.ReplyMarkup = keyboard
-	h.Bot.Send(msg)
+
+	var admins []models.User
+	database.DB.Where("role = ? AND status = ?", models.RoleAdmin, models.StatusApproved).Find(&admins)
+
+	if len(admins) == 0 {
+		msg := tgbotapi.NewMessage(config.SuperAdminUID, text)
+		msg.ParseMode = "HTML"
+		msg.ReplyMarkup = keyboard
+		h.Bot.Send(msg)
+		return
+	}
+
+	for _, admin := range admins {
+		msg := tgbotapi.NewMessage(admin.ID, text)
+		msg.ParseMode = "HTML"
+		msg.ReplyMarkup = keyboard
+		h.Bot.Send(msg)
+	}
 }
 
 func userKeyboard() tgbotapi.ReplyKeyboardMarkup {
