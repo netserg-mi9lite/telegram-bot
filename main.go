@@ -37,11 +37,29 @@ func main() {
 
 	for update := range updates {
 		if update.CallbackQuery != nil {
-			h.HandleCallback(&update)
+			data := update.CallbackQuery.Data
+			if data == "register_start" {
+				fakeUpdate := tgbotapi.Update{
+					Message: &tgbotapi.Message{
+						Chat: &tgbotapi.Chat{ID: update.CallbackQuery.Message.Chat.ID},
+						From: update.CallbackQuery.From,
+					},
+				}
+				h.RegisterStart(&fakeUpdate)
+				answer := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
+				bot.Send(answer)
+			} else {
+				h.HandleCallback(&update)
+			}
 			continue
 		}
 
 		if update.Message == nil {
+			continue
+		}
+
+		if update.Message.Contact != nil {
+			h.HandleContact(&update)
 			continue
 		}
 
@@ -50,24 +68,50 @@ func main() {
 			continue
 		}
 
-		if !middleware.HasAccess(user) && update.Message.Command() != "start" {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "⛔ <b>Нет доступа</b>\nОжидайте подтверждения администратором.")
-			msg.ParseMode = "HTML"
-			bot.Send(msg)
+		cmd := update.Message.Command()
+		text := update.Message.Text
+
+		if h.Cfg.IsAdmin(user.ID) {
+			switch cmd {
+			case "start":
+				h.Start(&update)
+			default:
+				switch text {
+				case "📋 Профиль":
+					h.Profile(&update)
+				case "👥 Управление":
+					h.ListUsers(&update)
+				case "📥 Заявки":
+					h.ListPending(&update)
+				default:
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, "💡 Используйте /start или кнопки меню.")
+					bot.Send(msg)
+				}
+			}
 			continue
 		}
 
-		switch update.Message.Command() {
+		switch cmd {
 		case "start":
 			h.Start(&update)
+		case "register":
+			h.RegisterStart(&update)
 		default:
-			switch update.Message.Text {
+			if text == "❌ Отмена" {
+				h.RegisterCancel(&update)
+				continue
+			}
+			if !middleware.HasAccess(user) {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+					"⛔ <b>Нет доступа</b>\n\n"+
+						"Используйте /register для регистрации.")
+				msg.ParseMode = "HTML"
+				bot.Send(msg)
+				continue
+			}
+			switch text {
 			case "📋 Профиль":
 				h.Profile(&update)
-			case "👥 Управление":
-				h.ListUsers(&update)
-			case "📥 Заявки":
-				h.ListPending(&update)
 			default:
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "💡 Используйте /start или кнопки меню.")
 				bot.Send(msg)
