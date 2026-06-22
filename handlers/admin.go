@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"telegram-bot/database"
 	"telegram-bot/models"
+	"telegram-bot/sanitize"
+	"strconv"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -144,33 +147,17 @@ func (h *Handler) HandleCallback(update *tgbotapi.Update) {
 		return
 	}
 
-	var action, targetID string
 	data := callback.Data
+	if !sanitize.CallbackData(data) {
+		h.answerCallback(callback.ID, "❓ Неверные данные")
+		return
+	}
 
-	switch {
-	case len(data) > 8 && data[:8] == "approve_":
-		action = "approve"
-		targetID = data[8:]
-	case len(data) > 7 && data[:7] == "reject_":
-		action = "reject"
-		targetID = data[7:]
-	case len(data) > 10 && data[:10] == "makeadmin_":
-		action = "makeadmin"
-		targetID = data[10:]
-	case len(data) > 12 && data[:12] == "removeadmin_":
-		action = "removeadmin"
-		targetID = data[12:]
-	case len(data) > 6 && data[:6] == "block_":
-		action = "block"
-		targetID = data[6:]
-	case len(data) > 8 && data[:8] == "unblock_":
-		action = "unblock"
-		targetID = data[8:]
-	case len(data) > 7 && data[:7] == "delete_":
-		action = "delete"
-		targetID = data[7:]
-	default:
-		h.answerCallback(callback.ID, "❓ Неизвестное действие")
+	parts := strings.SplitN(data, "_", 2)
+	action := parts[0]
+	targetID, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		h.answerCallback(callback.ID, "❌ Ошибка ID")
 		return
 	}
 

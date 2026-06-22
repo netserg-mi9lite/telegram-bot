@@ -4,12 +4,13 @@ import (
 	"telegram-bot/config"
 	"telegram-bot/database"
 	"telegram-bot/models"
+	"telegram-bot/sanitize"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type UserContext struct {
-	User *models.User
+	User    *models.User
 	IsAdmin bool
 }
 
@@ -52,9 +53,9 @@ func EnsureUserExists(cfg *config.Config, update *tgbotapi.Update) *models.User 
 			ID:        userID,
 			Status:    models.StatusPending,
 			Role:      models.RoleUser,
-			FirstName: update.Message.From.FirstName,
-			LastName:  update.Message.From.LastName,
-			Username:  update.Message.From.UserName,
+			FirstName: sanitize.Name(update.Message.From.FirstName),
+			LastName:  sanitize.Name(update.Message.From.LastName),
+			Username:  sanitize.Username(update.Message.From.UserName),
 		}
 		database.DB.Create(&user)
 	}

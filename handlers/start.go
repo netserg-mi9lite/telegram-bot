@@ -5,6 +5,7 @@ import (
 	"telegram-bot/config"
 	"telegram-bot/database"
 	"telegram-bot/models"
+	"telegram-bot/sanitize"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -28,9 +29,9 @@ func (h *Handler) Start(update *tgbotapi.Update) {
 	if result.Error != nil {
 		user = models.User{
 			ID:        userID,
-			FirstName: update.Message.From.FirstName,
-			LastName:  update.Message.From.LastName,
-			Username:  update.Message.From.UserName,
+			FirstName: sanitize.Name(update.Message.From.FirstName),
+			LastName:  sanitize.Name(update.Message.From.LastName),
+			Username:  sanitize.Username(update.Message.From.UserName),
 			Status:    models.StatusPending,
 			Role:      models.RoleUser,
 		}
