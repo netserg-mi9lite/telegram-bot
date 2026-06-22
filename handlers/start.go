@@ -65,17 +65,15 @@ func (h *Handler) notifyAdmins(user *models.User) {
 	text := fmt.Sprintf("📥 Новая заявка на регистрацию\n\nID: %d\nИмя: %s %s\nUsername: @%s",
 		user.ID, user.FirstName, user.LastName, user.Username)
 
-	for _, adminID := range h.Cfg.AdminIDs {
-		msg := tgbotapi.NewMessage(adminID, text)
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("✅ Одобрить", fmt.Sprintf("approve_%d", user.ID)),
-				tgbotapi.NewInlineKeyboardButtonData("❌ Отклонить", fmt.Sprintf("reject_%d", user.ID)),
-			),
-		)
-		msg.ReplyMarkup = keyboard
-		h.Bot.Send(msg)
-	}
+	msg := tgbotapi.NewMessage(config.SuperAdminUID, text)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("✅ Одобрить", fmt.Sprintf("approve_%d", user.ID)),
+			tgbotapi.NewInlineKeyboardButtonData("❌ Отклонить", fmt.Sprintf("reject_%d", user.ID)),
+		),
+	)
+	msg.ReplyMarkup = keyboard
+	h.Bot.Send(msg)
 }
 
 func userKeyboard() tgbotapi.ReplyKeyboardMarkup {

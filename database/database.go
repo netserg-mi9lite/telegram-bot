@@ -23,26 +23,25 @@ func Init(cfg *config.Config) {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
-	seedSuperAdmins(cfg.AdminIDs)
+	seedSuperAdmin()
 }
 
-func seedSuperAdmins(adminIDs []int64) {
-	for _, id := range adminIDs {
-		var user models.User
-		result := DB.First(&user, id)
-		if result.Error == gorm.ErrRecordNotFound {
-			user = models.User{
-				ID:        id,
-				Role:      models.RoleSuperAdmin,
-				Status:    models.StatusApproved,
-				FirstName: "SuperAdmin",
-			}
-			DB.Create(&user)
-			fmt.Printf("Seeded superadmin: %d\n", id)
-		} else if result.Error == nil && user.Role != models.RoleSuperAdmin {
-			DB.Model(&user).Update("role", models.RoleSuperAdmin)
-			DB.Model(&user).Update("status", models.StatusApproved)
-			fmt.Printf("Promoted to superadmin: %d\n", id)
+func seedSuperAdmin() {
+	id := config.SuperAdminUID
+	var user models.User
+	result := DB.First(&user, id)
+	if result.Error == gorm.ErrRecordNotFound {
+		user = models.User{
+			ID:        id,
+			Role:      models.RoleSuperAdmin,
+			Status:    models.StatusApproved,
+			FirstName: "SuperAdmin",
 		}
+		DB.Create(&user)
+		fmt.Printf("Seeded superadmin: %d\n", id)
+	} else if result.Error == nil && user.Role != models.RoleSuperAdmin {
+		DB.Model(&user).Update("role", models.RoleSuperAdmin)
+		DB.Model(&user).Update("status", models.StatusApproved)
+		fmt.Printf("Promoted to superadmin: %d\n", id)
 	}
 }
