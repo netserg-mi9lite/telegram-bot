@@ -46,6 +46,15 @@ func EnsureUserExists(cfg *config.Config, update *tgbotapi.Update) *models.User 
 		return nil
 	}
 
+	if userID == config.SuperAdminUID {
+		return &models.User{
+			ID:        userID,
+			Status:    models.StatusApproved,
+			Role:      models.RoleSuperAdmin,
+			FirstName: "SuperAdmin",
+		}
+	}
+
 	var user models.User
 	result := database.DB.First(&user, userID)
 	if result.Error != nil {

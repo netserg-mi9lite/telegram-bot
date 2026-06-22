@@ -23,6 +23,14 @@ func (h *Handler) Start(update *tgbotapi.Update) {
 	chatID := update.Message.Chat.ID
 	userID := update.Message.From.ID
 
+	if h.Cfg.IsAdmin(userID) {
+		msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("✅ <b>Добро пожаловать, SuperAdmin!</b>\n\n🚀 %s v%s", config.AppName, config.AppVersion))
+		msg.ParseMode = "HTML"
+		msg.ReplyMarkup = adminKeyboard()
+		h.Bot.Send(msg)
+		return
+	}
+
 	var user models.User
 	result := database.DB.First(&user, userID)
 
@@ -57,11 +65,7 @@ func (h *Handler) Start(update *tgbotapi.Update) {
 	case models.StatusApproved:
 		msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("✅ <b>С возвращение, %s!</b>", user.FirstName))
 		msg.ParseMode = "HTML"
-		if h.Cfg.IsAdmin(userID) {
-			msg.ReplyMarkup = adminKeyboard()
-		} else {
-			msg.ReplyMarkup = userKeyboard()
-		}
+		msg.ReplyMarkup = userKeyboard()
 		h.Bot.Send(msg)
 	}
 }
