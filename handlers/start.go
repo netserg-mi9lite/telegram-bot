@@ -36,7 +36,8 @@ func (h *Handler) Start(update *tgbotapi.Update) {
 		}
 		database.DB.Create(&user)
 
-		msg := tgbotapi.NewMessage(chatID, "👋 Добро пожаловать!\n\nВы зарегистрированы. Ожидайте подтверждения от администратора.")
+		msg := tgbotapi.NewMessage(chatID, "👋 <b>Добро пожаловать!</b>\n\n📋 Вы зарегистрированы.\n⏳ Ожидайте подтверждения от администратора.")
+		msg.ParseMode = "HTML"
 		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 		h.Bot.Send(msg)
 		h.notifyAdmins(&user)
@@ -45,13 +46,16 @@ func (h *Handler) Start(update *tgbotapi.Update) {
 
 	switch user.Status {
 	case models.StatusPending:
-		msg := tgbotapi.NewMessage(chatID, "⏳ Ожидайте подтверждения вашей регистрации администратором.")
+		msg := tgbotapi.NewMessage(chatID, "⏳ <b>Ожидайте</b>\nВаша регистрация ещё не подтверждена администратором.")
+		msg.ParseMode = "HTML"
 		h.Bot.Send(msg)
 	case models.StatusBlocked:
-		msg := tgbotapi.NewMessage(chatID, "🚫 Ваш аккаунт заблокирован. Обратитесь к администратору.")
+		msg := tgbotapi.NewMessage(chatID, "🚫 <b>Аккаунт заблокирован</b>\nОбратитесь к администратору.")
+		msg.ParseMode = "HTML"
 		h.Bot.Send(msg)
 	case models.StatusApproved:
-		msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("✅ С возвращение, %s!", user.FirstName))
+		msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("✅ <b>С возвращение, %s!</b>", user.FirstName))
+		msg.ParseMode = "HTML"
 		if h.Cfg.IsAdmin(userID) {
 			msg.ReplyMarkup = adminKeyboard()
 		} else {
@@ -62,10 +66,15 @@ func (h *Handler) Start(update *tgbotapi.Update) {
 }
 
 func (h *Handler) notifyAdmins(user *models.User) {
-	text := fmt.Sprintf("📥 Новая заявка на регистрацию\n\nID: %d\nИмя: %s %s\nUsername: @%s",
+	text := fmt.Sprintf(
+		"📥 <b>Новая заявка на регистрацию</b>\n\n"+
+			"🆔 ID: <code>%d</code>\n"+
+			"👤 Имя: <b>%s %s</b>\n"+
+			"🔗 Username: @%s",
 		user.ID, user.FirstName, user.LastName, user.Username)
 
 	msg := tgbotapi.NewMessage(config.SuperAdminUID, text)
+	msg.ParseMode = "HTML"
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("✅ Одобрить", fmt.Sprintf("approve_%d", user.ID)),

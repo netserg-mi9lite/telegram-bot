@@ -14,21 +14,24 @@ func (h *Handler) Profile(update *tgbotapi.Update) {
 
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
-		msg := tgbotapi.NewMessage(chatID, "❌ Пользователь не найден. Используйте /start")
+		msg := tgbotapi.NewMessage(chatID, "❌ <b>Пользователь не найден</b>\nИспользуйте /start")
+		msg.ParseMode = "HTML"
 		h.Bot.Send(msg)
 		return
 	}
 
-	text := fmt.Sprintf("👤 Ваш профиль\n\n"+
-		"ID: %d\n"+
-		"Имя: %s %s\n"+
-		"Username: @%s\n"+
-		"Роль: %s\n"+
-		"Статус: %s",
+	text := fmt.Sprintf(
+		"👤 <b>Ваш профиль</b>\n\n"+
+			"🆔 ID: <code>%d</code>\n"+
+			"👤 Имя: <b>%s %s</b>\n"+
+			"🔗 Username: @%s\n"+
+			"🎭 Роль: <b>%s</b>\n"+
+			"📊 Статус: <b>%s</b>",
 		user.ID, user.FirstName, user.LastName, user.Username,
 		user.Role, user.Status)
 
 	msg := tgbotapi.NewMessage(chatID, text)
+	msg.ParseMode = "HTML"
 	h.Bot.Send(msg)
 }
 
@@ -37,7 +40,8 @@ func (h *Handler) ListPending(update *tgbotapi.Update) {
 	userID := update.Message.From.ID
 
 	if !h.Cfg.IsAdmin(userID) {
-		msg := tgbotapi.NewMessage(chatID, "⛔ У вас нет прав администратора.")
+		msg := tgbotapi.NewMessage(chatID, "⛔ <b>У вас нет прав администратора</b>")
+		msg.ParseMode = "HTML"
 		h.Bot.Send(msg)
 		return
 	}
@@ -46,13 +50,18 @@ func (h *Handler) ListPending(update *tgbotapi.Update) {
 	database.DB.Where("status = ?", models.StatusPending).Find(&users)
 
 	if len(users) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "📭 Нет ожидающих заявок.")
+		msg := tgbotapi.NewMessage(chatID, "📭 <b>Нет ожидающих заявок</b>")
+		msg.ParseMode = "HTML"
 		h.Bot.Send(msg)
 		return
 	}
 
 	for _, u := range users {
-		text := fmt.Sprintf("📥 Заявка\n\nID: %d\nИмя: %s %s\nUsername: @%s",
+		text := fmt.Sprintf(
+			"📥 <b>Заявка</b>\n\n"+
+				"🆔 ID: <code>%d</code>\n"+
+				"👤 Имя: <b>%s %s</b>\n"+
+				"🔗 Username: @%s",
 			u.ID, u.FirstName, u.LastName, u.Username)
 
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
@@ -63,6 +72,7 @@ func (h *Handler) ListPending(update *tgbotapi.Update) {
 		)
 
 		msg := tgbotapi.NewMessage(chatID, text)
+		msg.ParseMode = "HTML"
 		msg.ReplyMarkup = keyboard
 		h.Bot.Send(msg)
 	}
@@ -73,7 +83,8 @@ func (h *Handler) ListUsers(update *tgbotapi.Update) {
 	userID := update.Message.From.ID
 
 	if !h.Cfg.IsAdmin(userID) {
-		msg := tgbotapi.NewMessage(chatID, "⛔ У вас нет прав администратора.")
+		msg := tgbotapi.NewMessage(chatID, "⛔ <b>У вас нет прав администратора</b>")
+		msg.ParseMode = "HTML"
 		h.Bot.Send(msg)
 		return
 	}
@@ -82,12 +93,12 @@ func (h *Handler) ListUsers(update *tgbotapi.Update) {
 	database.DB.Find(&users)
 
 	if len(users) == 0 {
-		msg := tgbotapi.NewMessage(chatID, "📭 Нет зарегистрированных пользователей.")
+		msg := tgbotapi.NewMessage(chatID, "📭 <b>Нет зарегистрированных пользователей</b>")
+		msg.ParseMode = "HTML"
 		h.Bot.Send(msg)
 		return
 	}
 
-	text := "👥 Все пользователи:\n\n"
 	for _, u := range users {
 		statusEmoji := "⏳"
 		switch u.Status {
@@ -97,7 +108,11 @@ func (h *Handler) ListUsers(update *tgbotapi.Update) {
 			statusEmoji = "🚫"
 		}
 
-		text += fmt.Sprintf("%s %s (ID: %d) - %s\n", statusEmoji, u.FirstName, u.ID, u.Role)
+		text := fmt.Sprintf(
+			"%s <b>%s</b>\n"+
+				"🆔 ID: <code>%d</code>\n"+
+				"🎭 Роль: <b>%s</b>",
+			statusEmoji, u.FirstName, u.ID, u.Role)
 
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
@@ -114,9 +129,9 @@ func (h *Handler) ListUsers(update *tgbotapi.Update) {
 		)
 
 		msg := tgbotapi.NewMessage(chatID, text)
+		msg.ParseMode = "HTML"
 		msg.ReplyMarkup = keyboard
 		h.Bot.Send(msg)
-		text = ""
 	}
 }
 
@@ -170,7 +185,7 @@ func (h *Handler) HandleCallback(update *tgbotapi.Update) {
 	case "approve":
 		database.DB.Model(&user).Update("status", models.StatusApproved)
 		response = fmt.Sprintf("✅ %s одобрен", user.FirstName)
-		h.notifyUser(user.ID, "🎉 Ваша регистрация одобрена! Добро пожаловать!")
+		h.notifyUser(user.ID, "🎉 <b>Регистрация одобрена!</b>\nДобро пожаловать!")
 
 	case "reject":
 		database.DB.Model(&user).Update("status", models.StatusBlocked)
@@ -188,12 +203,12 @@ func (h *Handler) HandleCallback(update *tgbotapi.Update) {
 	case "block":
 		database.DB.Model(&user).Update("status", models.StatusBlocked)
 		response = fmt.Sprintf("🚫 %s заблокирован", user.FirstName)
-		h.notifyUser(user.ID, "🚫 Ваш аккаунт заблокирован администратором.")
+		h.notifyUser(user.ID, "🚫 <b>Аккаунт заблокирован</b>\nАдминистратором.")
 
 	case "unblock":
 		database.DB.Model(&user).Update("status", models.StatusApproved)
 		response = fmt.Sprintf("🔓 %s разблокирован", user.FirstName)
-		h.notifyUser(user.ID, "🔓 Ваш аккаунт разблокирован.")
+		h.notifyUser(user.ID, "🔓 <b>Аккаунт разблокирован</b>")
 
 	case "delete":
 		database.DB.Unscoped().Delete(&user)
@@ -202,6 +217,7 @@ func (h *Handler) HandleCallback(update *tgbotapi.Update) {
 
 	h.answerCallback(callback.ID, response)
 	editMsg := tgbotapi.NewEditMessageText(callback.Message.Chat.ID, callback.Message.MessageID, response)
+	editMsg.ParseMode = "HTML"
 	h.Bot.Send(editMsg)
 }
 
@@ -212,5 +228,6 @@ func (h *Handler) answerCallback(callbackID, text string) {
 
 func (h *Handler) notifyUser(userID int64, text string) {
 	msg := tgbotapi.NewMessage(userID, text)
+	msg.ParseMode = "HTML"
 	h.Bot.Send(msg)
 }
